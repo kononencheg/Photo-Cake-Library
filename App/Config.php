@@ -8,12 +8,7 @@ class Config
      * @var array
      */
     private $config = NULL;
-
-    /**
-     * @var string
-     */
-    private $environment = NULL;
-
+    
     private function __construct() {}
 
     /**
@@ -25,7 +20,7 @@ class Config
      * @static
      * @return \PhotoCake\App\Config
      */
-    public static function getInstance()
+    private static function getInstance()
     {
         if (self::$instance === NULL) {
             self::$instance = new Config();
