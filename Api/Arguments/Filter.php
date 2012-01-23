@@ -15,7 +15,7 @@ class Filter
 
     const EMAIL = 'email';
     const URL = 'url';
-    const IP = 'ip';
+    //const IP = 'ip';
     const PHONE = 'phone';
 
     const PHONE_REGEXP = '/^((8|\+7)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{5,10}$/';
