@@ -8,7 +8,7 @@ class Config
      * @var array
      */
     private $config = NULL;
-    
+
     private function __construct() {}
 
     /**
