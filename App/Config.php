@@ -29,12 +29,20 @@ class Config
         return self::$instance;
     }
 
-
+    /**
+     * @static
+     * @param string $name
+     * @return mixed
+     */
     public static function get($name)
     {
         return self::getInstance()->config[$name];
     }
 
+    /**
+     * @static
+     * @param string $file
+     */
     public static function load($file)
     {
         $config = parse_ini_file($file, true);
