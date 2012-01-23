@@ -71,5 +71,4 @@ class Session
 
         return self::$instance;
     }
-
 }
