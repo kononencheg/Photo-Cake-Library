@@ -7,9 +7,24 @@ use PhotoCake\Db\Record\AbstractRecord;
 abstract class MongoRecord extends AbstractRecord
 {
     /**
-     * @var \MongoId
+     *
      */
-    private $id = NULL;
+    const RELATION_MANY = 'many';
+
+    /**
+     *
+     */
+    const RELATION_ONE = 'one';
+
+    /**
+     * @static
+     * @param mixed $object
+     * @return bool
+     */
+    public static function isMongoRecord($object)
+    {
+        return is_subclass_of($object, __CLASS__);
+    }
 
     /**
      * @var array
@@ -17,17 +32,134 @@ abstract class MongoRecord extends AbstractRecord
     protected $spanFields = array();
 
     /**
+     * @var \MongoId
+     */
+    private $id = NULL;
+
+    /**
+     * @var array
+     */
+    private $defaultSpanFields = NULL;
+
+    /**
+     * @var array
+     */
+    private $types = array();
+
+    /**
+     * @var array
+     */
+    private $relations = array();
+
+    /**
+     * @var array
+     */
+    private $originalData = array();
+
+
+    /**
+     *
+     */
+    public function __construct()
+    {
+        $this->defaultSpanFields = array_keys($this->fields);
+        array_push($this->defaultSpanFields, '_ref');
+
+        foreach ($this->fields as $name => $field) {
+            if (!is_array($field)) {
+                $this->types[$name] = $field;
+                $this->relations[$name] = MongoRecord::RELATION_ONE;
+            } else {
+                $this->types[$name] = $field['type'];
+                $this->relations[$name] = $field['relation'];
+            }
+        }
+    }
+
+    /**
+     * @return \MongoId
+     */
+    public function getId()
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $value
+     */
+    public function set($name, $value)
+    {
+        if ($this->isOne($name)) {
+            $this->data[$name]
+                = $this->filterValue($value, $this->types[$name]);
+        }
+    }
+
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function get($name)
+    {
+        if (isset($this->data[$name])) {
+            return $this->data[$name];
+        }
+
+        return NULL;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $value
+     */
+    public function add($name, $value)
+    {
+        if ($this->isMany($name)) {
+            if (!isset($this->data[$name])) {
+                $this->data[$name] = array();
+            }
+
+            array_push($this->data[$name],
+                       $this->filterValue($value, $this->types[$name]));
+        }
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $value
+     */
+    public function remove($name, $value)
+    {
+        if ($this->isMany($name) && is_array($this->data[$name])) {
+            $key = array_search($value, $this->data[$name]);
+            array_splice($this->data[$name], $key, 1);
+        }
+    }
+
+    /**
      * @param mixed $data
-     * @return void
      */
     public function populate($data)
     {
-        parent::populate($data);
+        foreach ($data as $name => $value) {
+            if (isset($this->fields[$name])) {
+                $type = $this->types[$name];
 
-        if (isset($data['_id'])) {
-            $this->id = $data['_id'];
-        } elseif (isset($data['_ref'])) {
-            $this->id = $data['_ref']['$id'];
+                switch ($this->relations[$name]) {
+                    case MongoRecord::RELATION_ONE: {
+                        $this->populateOne($name, $value, $type);
+                        break;
+                    }
+
+                    case MongoRecord::RELATION_MANY: {
+                        $this->populateMany($name, $value, $type);
+                        break;
+                    }
+                }
+            } elseif ($name === '_id' || $name === '_ref') {
+                $this->id = $value;
+            }
         }
     }
 
@@ -36,7 +168,11 @@ abstract class MongoRecord extends AbstractRecord
      */
     public function dbSerialize()
     {
-        $result = parent::dbSerialize();
+        $result = array();
+
+        foreach ($this->data as $name => $value) {
+            $result[$name] = $this->getDbValue($name, $value);
+        }
 
         if ($this->id !== NULL) {
             $result['_id'] = $this->id;
@@ -46,11 +182,65 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
+     * @param string $parent
+     * @return array
+     */
+    protected function spanDbSerialize($parent)
+    {
+        $result = array();
+
+        $fields = $this->getSpanFields($parent);
+        foreach ($fields as $name) {
+            if (isset($this->data[$name])) {
+                $result[$name] = $this->getDbValue($name, $this->data[$name]);
+            } elseif ($name === '_ref' && $this->id !== NULL) {
+                $result['_ref'] = $this->id;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $value
+     * @return mixed
+     */
+    private function getDbValue($name, $value)
+    {
+        $type = $this->types[$name];
+        if (MongoRecord::isMongoRecord($type)) {
+            switch ($this->relations[$name]) {
+                case MongoRecord::RELATION_ONE: {
+                    return $value->spanDbSerialize($this->collection);
+                }
+
+                case MongoRecord::RELATION_MANY: {
+                    $result = array();
+
+                    foreach ($value as $record) {
+                        array_push($result,
+                                   $record->spanDbSerialize($this->collection));
+                    }
+
+                    return $result;
+                }
+            }
+        }
+
+        return $value;
+    }
+
+    /**
      * @return array
      */
     public function jsonSerialize()
     {
-        $result = parent::jsonSerialize();
+        $result = array();
+
+        foreach ($this->data as $name => $value) {
+            $result[$name] = $this->getJsonValue($name, $value);
+        }
 
         if ($this->id !== NULL) {
             $result['id'] = $this->id->{'$id'};
@@ -59,45 +249,133 @@ abstract class MongoRecord extends AbstractRecord
         return $result;
     }
 
+    private function getJsonValue($name, $value)
+    {
+        $type = $this->types[$name];
+
+        if (MongoRecord::isMongoRecord($type)) {
+            switch ($this->relations[$name]) {
+                case MongoRecord::RELATION_ONE: {
+                    return $value->jsonSerialize();
+                }
+
+                case MongoRecord::RELATION_MANY: {
+                    $result = array();
+
+                    foreach ($value as $record) {
+                        array_push($result, $record->jsonSerialize());
+                    }
+
+                    return $result;
+                }
+            }
+        }
+
+        return $value;
+    }
+
     /**
      * @param string $parent
      * @return array
      */
-    protected function spanSerialize($parent)
+    private function getSpanFields($parent)
     {
-        $result = array();
-
-        $fields = NULL;
         if (isset($this->spanFields[$parent])) {
-            $fields = $this->spanFields[$parent];
-        } else {
-            $fields = array_keys($this->fields);
-            array_push($fields, '_ref');
+            return $this->spanFields[$parent];
         }
 
-        foreach ($fields as $i => $name) {
-            if (isset($this->data[$name])) {
-                $value = $this->data[$name];
-
-                if (is_object($value) && AbstractRecord::isRecord($value)) {
-                    $result[$name] = $value->spanSerialize($this->collectionName);
-                } else {
-                    $result[$name] = $value;
-                }
-            } elseif ($name === '_ref' && $this->id !== NULL) {
-                $result['_ref']
-                    = \MongoDBRef::create($this->collectionName, $this->id);
-            }
-        }
-
-        return $result;
+        return $this->defaultSpanFields;
     }
 
     /**
-     * @return string
+     * @param string $name
+     * @param mixed $value
+     * @param string $type
      */
-    public function getID()
+    private function populateOne($name, $value, $type)
     {
-        return $this->id->{'$id'};
+        if (MongoRecord::isMongoRecord($type)) {
+            $record = $this->createRecord($type);
+            $record->populate($value);
+
+            $this->data[$name] = $record;
+        } else {
+            $this->data[$name] = $this->filterValue($value, $type);
+        }
     }
+
+    /**
+     * @param string $name
+     * @param array $values
+     * @param string $type
+     */
+    private function populateMany($name, array $values, $type)
+    {
+        $array = array();
+
+        if (MongoRecord::isMongoRecord($type)) {
+            foreach ($values as $value) {
+                $record = $this->createRecord($type);
+                $record->populate($value);
+
+                array_push($array, $record);
+            }
+        } else {
+            foreach ($values as $value) {
+                array_push($array, $this->filterValue($value, $type));
+            }
+        }
+
+        $this->data[$name] = $array;
+        $this->originalData = $array;
+    }
+
+    /**
+     * @param mixed $value
+     * @param string $type
+     * @return mixed
+     */
+    private function filterValue($value, $type)
+    {
+        if (class_exists($type, true)) {
+            if($value instanceof $type) {
+                return $value;
+            }
+        } else {
+            settype($value, $type);
+            return $value;
+        }
+
+        return NULL;
+    }
+
+    /**
+     * @param string $type
+     * @return \PhotoCake\Db\Mongo\MongoRecord
+     */
+    private function createRecord($type)
+    {
+        return new $type();
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    private function isMany($name)
+    {
+        return isset($this->fields[$name]) &&
+               $this->relations[$name] === MongoRecord::RELATION_MANY;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    private function isOne($name)
+    {
+        return isset($this->fields[$name]) &&
+               $this->relations[$name] === MongoRecord::RELATION_ONE;
+    }
+
 }

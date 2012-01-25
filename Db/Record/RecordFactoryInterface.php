@@ -6,8 +6,8 @@ interface RecordFactoryInterface
 {
     /**
      * @abstract
-     * @param string $collectionName
+     * @param string $collection
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    function create($collectionName);
+    function create($collection);
 }

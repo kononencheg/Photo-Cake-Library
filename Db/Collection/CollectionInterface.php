@@ -21,11 +21,11 @@ interface CollectionInterface
 
     /**
      * @abstract
-     * @param mixed $data
      * @param mixed $condition
+     * @param mixed $data
      * @return void
      */
-    function updateAll($data, $condition = NULL);
+    function updateAll($condition, $data);
 
     /**
      * @abstract
@@ -55,7 +55,7 @@ interface CollectionInterface
 
     /**
      * @abstract
-     * @param \PhotoCake\Db\Record\RecordInterface$record
+     * @param \PhotoCake\Db\Record\RecordInterface $record
      * @return void
      */
     function remove(RecordInterface $record);

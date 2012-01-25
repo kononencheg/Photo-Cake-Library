@@ -37,7 +37,9 @@ abstract class Method
     /**
      * @return void
      */
-    protected function filter() {}
+    protected function filter() {
+        $this->applyFilter();
+    }
 
     /**
      * @abstract
@@ -62,7 +64,7 @@ abstract class Method
      * @param $name
      * @return mixed
      */
-    public function __get($name) {
+    protected function param($name) {
         if (isset($this->params[$name])) {
             return $this->params[$name];
         }
@@ -74,9 +76,11 @@ abstract class Method
      * @param array $messages
      * @return void
      */
-    protected function applyFilter(array $messages, array $customFilters = array()) {
+    protected function applyFilter(array $messages = array(),
+                                   array $customFilters = array()) {
+
         foreach ($this->arguments as $name => $type) {
-            $value = $this->filter->check($this->$name, $type);
+            $value = $this->filter->check($this->param($name), $type);
 
             if (!is_object($value) && !is_array($value) &&
                 isset($messages[$name]) &&

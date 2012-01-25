@@ -6,8 +6,13 @@ interface RecordInterface
 {
     /**
      * @abstract
+     * @return mixed
+     */
+    public function getId();
+
+    /**
+     * @abstract
      * @param mixed $data
-     * @return void
      */
     public function populate($data);
 
@@ -29,15 +34,28 @@ interface RecordInterface
 
     /**
      * @abstract
-     * @param $name
-     * @param $value
+     * @param string $name
+     * @param mixed $value
      */
     public function set($name, $value);
 
     /**
      * @abstract
-     * @param $name
+     * @param string $name
      */
     public function get($name);
 
+    /**
+     * @abstract
+     * @param string $name
+     * @param mixed $value
+     */
+    public function add($name, $value);
+
+    /**
+     * @abstract
+     * @param string $name
+     * @param mixed $value
+     */
+    public function remove($name, $value);
 }

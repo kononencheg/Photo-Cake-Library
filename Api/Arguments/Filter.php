@@ -10,13 +10,13 @@ class Filter
     const FLOAT = 'float';
     const OBJECT = 'object';
 
-    const BASE64 = 'base64';
-    const JSON = 'json';
-
     const EMAIL = 'email';
     const URL = 'url';
     const IP = 'ip';
     const PHONE = 'phone';
+
+    const BASE64 = 'base64';
+    const JSON = 'json';
 
     const PHONE_REGEXP = '/^((8|\+7)[\- ]?)?(\(?\d{3}\)?[\- ]?)?[\d\- ]{5,10}$/';
 

@@ -43,9 +43,12 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      * @param mixed $condition
      * @return void
      */
-    public function updateAll($data, $condition = NULL)
+    public function updateAll($condition, $data)
     {
-        $this->collection->update($condition, $data);
+        $this->collection->update($condition, $data, array(
+            'multiple' => true,
+            'safe' => true,
+        ));
     }
 
     /**
@@ -71,12 +74,11 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     /**
      * @param mixed $condition
      * @param mixed $offset
-     * @return \PhotoCake\Db\Record\PhotoCake\Db\Record\RecordInterface
+     * @return \PhotoCake\Db\Record\RecordInterface
      */
-    public function fetchOne($condition = NULL, $offset = NULL)
+    public function fetchOne($condition = array(), $offset = NULL)
     {
         $record = NULL;
-        
         $cursor = $this->collection->find($condition)
                                     ->limit(1)
                                     ->skip($offset);
