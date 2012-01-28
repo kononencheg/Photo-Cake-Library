@@ -3,6 +3,7 @@
 namespace PhotoCake\View;
 
 use PhotoCake\Http\Session;
+use PhotoCake\Http\Request;
 
 class Page
 {
@@ -19,6 +20,7 @@ class Page
     public function __construct($base = '')
     {
         $this->session = Session::getInstance();
+        $this->request = Request::getInstance();
         $this->base = $base;
 
         ob_start();
