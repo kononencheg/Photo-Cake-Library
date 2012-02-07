@@ -7,7 +7,7 @@ class Request
     /**
      * @var array
      */
-    private $source = NULL;
+    private $source = null;
 
     /**
      *
@@ -21,15 +21,15 @@ class Request
      * @param string $name
      * @return mixed
      */
-    public function get($name = NULL)
+    public function get($name = null)
     {
-        if ($name === NULL) {
+        if ($name === null) {
             return $this->source;
         } elseif (isset($this->source[$name])) {
             return $this->source[$name];
         }
         
-        return NULL;
+        return null;
     }
 
     /**
@@ -38,7 +38,7 @@ class Request
      */
     public function fetch($name)
     {
-        $result = NULL;
+        $result = null;
 
         if (isset($this->source[$name])) {
             $result = $this->source[$name];
@@ -51,7 +51,7 @@ class Request
     /**
      * @var \PhotoCake\Http\Request
      */
-    private static $instance = NULL;
+    private static $instance = null;
 
     /**
      * @static
@@ -59,7 +59,7 @@ class Request
      */
     public static function getInstance()
     {
-        if (self::$instance === NULL) {
+        if (self::$instance === null) {
             self::$instance = new Request();
         }
 

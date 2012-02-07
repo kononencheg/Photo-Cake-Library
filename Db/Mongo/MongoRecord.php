@@ -17,6 +17,16 @@ abstract class MongoRecord extends AbstractRecord
     const RELATION_ONE = 'one';
 
     /**
+     *
+     */
+    const VISIBILITY_HIDDEN = 'hidden';
+
+    /**
+     *
+     */
+    const VISIBILITY_VISIBLE = 'visible';
+
+    /**
      * @static
      * @param mixed $object
      * @return bool
@@ -34,12 +44,12 @@ abstract class MongoRecord extends AbstractRecord
     /**
      * @var \MongoId
      */
-    private $id = NULL;
+    private $id = null;
 
     /**
      * @var array
      */
-    private $defaultSpanFields = NULL;
+    private $defaultSpanFields = null;
 
     /**
      * @var array
@@ -50,6 +60,11 @@ abstract class MongoRecord extends AbstractRecord
      * @var array
      */
     private $relations = array();
+
+    /**
+     * @var array
+     */
+    private $visibilities = array();
 
     /**
      * @var array
@@ -66,22 +81,37 @@ abstract class MongoRecord extends AbstractRecord
         array_push($this->defaultSpanFields, '_ref');
 
         foreach ($this->fields as $name => $field) {
-            if (!is_array($field)) {
-                $this->types[$name] = $field;
-                $this->relations[$name] = MongoRecord::RELATION_ONE;
-            } else {
-                $this->types[$name] = $field['type'];
-                $this->relations[$name] = $field['relation'];
-            }
+            $type = 'string';
+            $relation = MongoRecord::RELATION_ONE;
+            $visibility = MongoRecord::VISIBILITY_VISIBLE;
+
+            if (is_array($field)) {
+                $type = $field['type'];
+
+                if (isset($field['relation'])) {
+                    $relation = $field['relation'];
+                }
+
+                if (isset($field['visibility'])) {
+                    $visibility = $field['visibility'];
+                }
+
+           } else {
+                $type = $field;
+           }
+
+            $this->types[$name] = $type;
+            $this->relations[$name] = $relation;
+            $this->visibilities[$name] = $visibility;
         }
     }
 
     /**
-     * @return \MongoId
+     * @return string
      */
     public function getId()
     {
-        return $this->id;
+        return $this->id->{'$id'};
     }
 
     /**
@@ -106,7 +136,7 @@ abstract class MongoRecord extends AbstractRecord
             return $this->data[$name];
         }
 
-        return NULL;
+        return null;
     }
 
     /**
@@ -174,7 +204,7 @@ abstract class MongoRecord extends AbstractRecord
             $result[$name] = $this->getDbValue($name, $value);
         }
 
-        if ($this->id !== NULL) {
+        if ($this->id !== null) {
             $result['_id'] = $this->id;
         }
 
@@ -193,7 +223,7 @@ abstract class MongoRecord extends AbstractRecord
         foreach ($fields as $name) {
             if (isset($this->data[$name])) {
                 $result[$name] = $this->getDbValue($name, $this->data[$name]);
-            } elseif ($name === '_ref' && $this->id !== NULL) {
+            } elseif ($name === '_ref' && $this->id !== null) {
                 $result['_ref'] = $this->id;
             }
         }
@@ -239,10 +269,14 @@ abstract class MongoRecord extends AbstractRecord
         $result = array();
 
         foreach ($this->data as $name => $value) {
-            $result[$name] = $this->getJsonValue($name, $value);
+            if ($this->visibilities[$name]
+                    === MongoRecord::VISIBILITY_VISIBLE) {
+
+                $result[$name] = $this->getJsonValue($name, $value);
+            }
         }
 
-        if ($this->id !== NULL) {
+        if ($this->id !== null) {
             $result['id'] = $this->id->{'$id'};
         }
 
@@ -346,7 +380,7 @@ abstract class MongoRecord extends AbstractRecord
             return $value;
         }
 
-        return NULL;
+        return null;
     }
 
     /**

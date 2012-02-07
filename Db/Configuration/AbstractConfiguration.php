@@ -9,17 +9,17 @@ abstract class AbstractConfiguration
     /**
      * @var \PhotoCake\Db\Collection\CollectionFactoryInterface
      */
-    protected $collectionFactory = NULL;
+    protected $collectionFactory = null;
 
     /**
      * @var \PhotoCake\Db\Record\RecordFactoryInterface
      */
-    protected $recordFactory = NULL;
+    protected $recordFactory = null;
 
     /**
      * @var string
      */
-    protected $db = NULL;
+    protected $db = null;
 
     /**
      * @param \PhotoCake\Db\Record\RecordFactoryInterface $recordFactory

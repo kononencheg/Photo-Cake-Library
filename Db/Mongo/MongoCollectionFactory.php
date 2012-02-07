@@ -10,12 +10,12 @@ class MongoCollectionFactory implements CollectionFactoryInterface
     /**
      * @var \MongoDB
      */
-    private $db = NULL;
+    private $db = null;
 
     /**
      * @var \PhotoCake\Db\Record\RecordFactoryInterface
      */
-    private $recordFactory = NULL;
+    private $recordFactory = null;
 
     /**
      * @var array

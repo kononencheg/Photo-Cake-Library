@@ -52,7 +52,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     }
 
     /**
-     * @param mixed $id
+     * @param string $id
      * @return \PhotoCake\Db\Record\RecordInterface
      */
     public function fetch($id)
@@ -61,14 +61,14 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
             '_id' => $this->mongoID($id)
         ));
 
-        if ($data !== NULL) {
+        if ($data !== null) {
             $record = $this->createRecord();
             $record->populate($data);
 
             return $record;
         }
 
-        return NULL;
+        return null;
     }
 
     /**
@@ -76,15 +76,15 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      * @param mixed $offset
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    public function fetchOne($condition = array(), $offset = NULL)
+    public function fetchOne($condition = array(), $offset = null)
     {
-        $record = NULL;
+        $record = null;
         $cursor = $this->collection->find($condition)
                                     ->limit(1)
                                     ->skip($offset);
 
         $data = $cursor->getNext();
-        if ($data !== NULL) {
+        if ($data !== null) {
             $record = $this->createRecord();
             $record->populate($data);
         }
@@ -100,7 +100,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      * @return \Iterator
      */
     public function fetchAll($condition = array(),
-                             $sort = array(), $offset = NULL, $limit = NULL)
+                             $sort = array(), $offset = null, $limit = null)
     {
         
         $cursor = $this->collection->find($condition)
@@ -137,7 +137,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      * @param null $offset
      * @return int
      */
-    public function count($condition = NULL, $limit = NULL, $offset = NULL)
+    public function count($condition = null, $limit = null, $offset = null)
     {
         return $this->collection->count($condition, $limit, $offset);
     }
@@ -148,10 +148,6 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      */
     private function mongoID($id)
     {
-        if ($id instanceof \MongoId) {
-            return $id;
-        }
-
         return new \MongoId($id);
     }
 }

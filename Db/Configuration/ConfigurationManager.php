@@ -9,7 +9,7 @@ class ConfigurationManager
     /**
      * @var \PhotoCake\Db\Configuration\AbstractConfiguration
      */
-    private $defaultConfiguration = NULL;
+    private $defaultConfiguration = null;
 
     /**
      * @param \PhotoCake\Db\Configuration\AbstractConfiguration $connection

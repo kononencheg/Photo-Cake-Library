@@ -6,7 +6,7 @@ interface RecordInterface
 {
     /**
      * @abstract
-     * @return mixed
+     * @return string
      */
     public function getId();
 

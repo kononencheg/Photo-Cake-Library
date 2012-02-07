@@ -10,12 +10,12 @@ class Page
     /**
      * @var string
      */
-    private $base = NULL;
+    private $base = null;
 
     /**
      * @var \PhotoCake\Http\Session
      */
-    private $session = NULL;
+    private $session = null;
 
     public function __construct($base = '')
     {

@@ -29,7 +29,7 @@ interface CollectionInterface
 
     /**
      * @abstract
-     * @param mixed $id
+     * @param string $id
      * @return \PhotoCake\Db\Record\RecordInterface
      */
     function fetch($id);
@@ -40,7 +40,7 @@ interface CollectionInterface
      * @param integer $offset
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    function fetchOne($condition = NULL, $offset = NULL);
+    function fetchOne($condition = null, $offset = null);
 
     /**
      * @abstract
@@ -51,7 +51,7 @@ interface CollectionInterface
      * @return Iterator
      */
     function fetchAll
-        ($condition = NULL, $sort = NULL, $offset = NULL, $limit = NULL);
+        ($condition = null, $sort = null, $offset = null, $limit = null);
 
     /**
      * @abstract
@@ -75,4 +75,10 @@ interface CollectionInterface
      * @return integer
      */
     function count($condition, $limit, $offset);
+
+    /**
+     * @abstract
+     * @return \PhotoCake\Db\Record\RecordInterface
+     */
+    public function createRecord();
 }

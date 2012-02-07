@@ -7,14 +7,14 @@ class Config
     /**
      * @var array
      */
-    private $config = NULL;
+    private $config = null;
 
     private function __construct() {}
 
     /**
      * @var \PhotoCake\App\Config
      */
-    private static $instance = NULL;
+    private static $instance = null;
 
     /**
      * @static
@@ -22,7 +22,7 @@ class Config
      */
     private static function getInstance()
     {
-        if (self::$instance === NULL) {
+        if (self::$instance === null) {
             self::$instance = new Config();
         }
 

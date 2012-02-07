@@ -4,7 +4,7 @@ namespace PhotoCake\Http\Response\Format;
 
 class RawFormat implements FormatInterface
 {
-    private $type = NULL;
+    private $type = null;
 
     /**
      * @return string

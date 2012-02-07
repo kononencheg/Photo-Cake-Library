@@ -9,12 +9,12 @@ class Response
     /**
      * @var \PhotoCake\Http\Response\Format\FormatInterface
      */
-    private $format = NULL;
+    private $format = null;
 
     /**
      * @var array
      */
-    private $response = NULL;
+    private $response = null;
 
     /**
      * @var array
@@ -62,7 +62,7 @@ class Response
 
         if ($this->hasErrors()) {
             $this->format->renderErrors($this->errors);
-        } elseif ($this->response !== NULL) {
+        } else {
             $this->format->renderResponse($this->response);
         }
     }

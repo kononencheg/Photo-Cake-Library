@@ -26,7 +26,7 @@ class Filter
      * @return bool|mixed|null|string
      */
     public function check($value, $type) {
-        if ($value !== NULL) {
+        if ($value !== null) {
             switch ($type) {
                 case self::STRING:
                 case self::BOOLEAN:
@@ -47,10 +47,16 @@ class Filter
                 case self::PHONE:
                     return preg_match(self::PHONE_REGEXP, $value) > 0 ? $value : false;
 
-                default: return NULL;
+                default: {
+                    if (is_array($type) && in_array($value, $type)) {
+                        return $value;
+                    }
+                };
             }
+
+            return null;
         }
 
-        return NULL;
+        return null;
     }
 }

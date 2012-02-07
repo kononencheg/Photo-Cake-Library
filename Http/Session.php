@@ -16,7 +16,7 @@ class Session
      */
     public function set($name, $value)
     {
-        if ($value === NULL) {
+        if ($value === null) {
             unset($_SESSION[$name]);
         } else {
             $_SESSION[$name] = $value;
@@ -33,7 +33,7 @@ class Session
             return $_SESSION[$name];
         }
 
-        return NULL;
+        return null;
     }
 
 
@@ -57,7 +57,7 @@ class Session
     /**
      * @var \PhotoCake\Http\Session
      */
-    private static $instance = NULL;
+    private static $instance = null;
 
     /**
      * @static
@@ -65,7 +65,7 @@ class Session
      */
     public static function getInstance()
     {
-        if (self::$instance === NULL) {
+        if (self::$instance === null) {
             self::$instance = new Session();
         }
 

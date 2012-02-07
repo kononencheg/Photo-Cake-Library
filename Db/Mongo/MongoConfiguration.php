@@ -10,12 +10,12 @@ class MongoConfiguration extends AbstractConfiguration
     /**
      * @var string
      */
-    private $server = NULL;
+    private $server = null;
 
     /**
      * @var array
      */
-    private $options = NULL;
+    private $options = null;
 
     /**
      * @param string $server
@@ -30,7 +30,7 @@ class MongoConfiguration extends AbstractConfiguration
 
     public function getCollectionFactory()
     {
-        if ($this->collectionFactory === NULL) {
+        if ($this->collectionFactory === null) {
             $mongo = new \Mongo($this->server, $this->options);
 
             $this->collectionFactory

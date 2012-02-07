@@ -2,7 +2,10 @@
 
 namespace PhotoCake\Api\Method;
 
-use \PhotoCake\Http\Response\Response;
+use PhotoCake\Api\Acl\AclInterface;
+use PhotoCake\Api\Arguments\Filter;
+
+use PhotoCake\Http\Response\Response;
 
 abstract class Method
 {
@@ -12,9 +15,14 @@ abstract class Method
     protected $arguments = array();
 
     /**
+     * @var array
+     */
+    protected $accessList = null;
+
+    /**
      * @var \PhotoCake\Api\Arguments\Filter
      */
-    private $filter = NULL;
+    private $filter = null;
 
     /**
      * @var array
@@ -22,16 +30,26 @@ abstract class Method
     private $params = array();
 
     /**
+     * @var \PhotoCake\Api\Acl\AclInterface
+     */
+    private $acl = null;
+
+    /**
      * @var \PhotoCake\Http\Response\Response
      */
-    protected $response = NULL;
+    protected $response = null;
 
     /**
      * @param \PhotoCake\Http\Response\Response $response
      */
     public function setResponse(Response $response) {
         $this->response = $response;
-        $this->filter = new \PhotoCake\Api\Arguments\Filter();
+        $this->filter = new Filter();
+    }
+
+    public function setAcl(AclInterface $acl)
+    {
+        $this->acl = $acl;
     }
 
     /**
@@ -51,12 +69,18 @@ abstract class Method
      * @param array $params
      */
     final public function call(array $params) {
-        $this->params = $params;
+        if ($this->acl === null ||
+            $this->acl->test($this->accessList)) {
 
-        $this->filter();
+            $this->params = $params;
 
-        if (!$this->response->hasErrors()) {
-            $this->response->setResponse($this->apply());
+            $this->filter();
+
+            if (!$this->response->hasErrors()) {
+                $this->response->setResponse($this->apply());
+            }
+        } else {
+            $this->response->addError('Доступ запрещен', 403);
         }
     }
 
@@ -69,7 +93,7 @@ abstract class Method
             return $this->params[$name];
         }
 
-        return NULL;
+        return null;
     }
 
     /**

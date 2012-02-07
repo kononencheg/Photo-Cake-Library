@@ -8,7 +8,7 @@ class FormatFactory
      * @param string $name
      * @return \PhotoCake\Http\Response\Format\FormatInterface
      */
-    public function create($name = NULL, \PhotoCake\Http\Request $request)
+    public function create($name = null, \PhotoCake\Http\Request $request)
     {
         switch ($name) {
             case 'frame-callback':
