@@ -14,7 +14,7 @@ interface RecordInterface
      * @abstract
      * @param mixed $data
      */
-    public function populate($data);
+    public function populate(array $data);
 
     /**
      * Specify data which should be stored in data base.

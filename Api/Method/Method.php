@@ -85,15 +85,23 @@ abstract class Method
     }
 
     /**
-     * @param $name
+     * @param string $name
      * @return mixed
      */
-    protected function param($name) {
+    protected function getParam($name) {
         if (isset($this->params[$name])) {
             return $this->params[$name];
         }
 
         return null;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $value
+     */
+    protected function setParam($name, $value) {
+        $this->params[$name] = $value;
     }
 
     /**
@@ -104,7 +112,7 @@ abstract class Method
                                    array $customFilters = array()) {
 
         foreach ($this->arguments as $name => $type) {
-            $value = $this->filter->check($this->param($name), $type);
+            $value = $this->filter->check($this->getParam($name), $type);
 
             if (!is_object($value) && !is_array($value) &&
                 isset($messages[$name]) &&

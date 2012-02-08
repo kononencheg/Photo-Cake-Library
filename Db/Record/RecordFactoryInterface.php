@@ -7,7 +7,17 @@ interface RecordFactoryInterface
     /**
      * @abstract
      * @param string $collection
+     * @param array $value
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    function create($collection);
+    function createForCollection($collection, array $value);
+
+    /**
+     * @abstract
+     * @param string $name
+     * @param array $value
+     * @return \PhotoCake\Db\Record\RecordInterface
+     */
+    function createByName($name, array $value);
+
 }

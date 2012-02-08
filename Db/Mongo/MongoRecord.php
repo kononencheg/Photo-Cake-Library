@@ -3,28 +3,33 @@
 namespace PhotoCake\Db\Mongo;
 
 use PhotoCake\Db\Record\AbstractRecord;
+use PhotoCake\Db\Record\RecordFactoryInterface;
 
 abstract class MongoRecord extends AbstractRecord
 {
     /**
-     *
+     * @const
+     * @var int
      */
-    const RELATION_MANY = 'many';
+    const RELATION_MANY = 0;
 
     /**
-     *
+     * @const
+     * @var int
      */
-    const RELATION_ONE = 'one';
+    const RELATION_ONE = 1;
 
     /**
-     *
+     * @const
+     * @var int
      */
-    const VISIBILITY_HIDDEN = 'hidden';
+    const VISIBILITY_HIDDEN = 0;
 
     /**
-     *
+     * @const
+     * @var int
      */
-    const VISIBILITY_VISIBLE = 'visible';
+    const VISIBILITY_VISIBLE = 1;
 
     /**
      * @static
@@ -37,11 +42,6 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
-     * @var array
-     */
-    protected $spanFields = array();
-
-    /**
      * @var \MongoId
      */
     private $id = null;
@@ -49,39 +49,26 @@ abstract class MongoRecord extends AbstractRecord
     /**
      * @var array
      */
+    protected $spanFields = array();
+
+    /**
+     * @var array
+     */
     private $defaultSpanFields = null;
 
     /**
-     * @var array
+     * @var RecordFactoryInterface
      */
-    private $types = array();
-
-    /**
-     * @var array
-     */
-    private $relations = array();
-
-    /**
-     * @var array
-     */
-    private $visibilities = array();
-
-    /**
-     * @var array
-     */
-    private $originalData = array();
-
+    private $recordFactory = null;
 
     /**
      *
      */
     public function __construct()
     {
-        $this->defaultSpanFields = array_keys($this->fields);
-        array_push($this->defaultSpanFields, '_ref');
-
+        $this->fields = $this->extendFields($this->fields);
         foreach ($this->fields as $name => $field) {
-            $type = 'string';
+            $type = $field;
             $relation = MongoRecord::RELATION_ONE;
             $visibility = MongoRecord::VISIBILITY_VISIBLE;
 
@@ -95,15 +82,25 @@ abstract class MongoRecord extends AbstractRecord
                 if (isset($field['visibility'])) {
                     $visibility = $field['visibility'];
                 }
+            }
 
-           } else {
-                $type = $field;
-           }
-
-            $this->types[$name] = $type;
-            $this->relations[$name] = $relation;
-            $this->visibilities[$name] = $visibility;
+            $this->fields[$name] = new \stdClass();
+            $this->fields[$name]->type = $type;
+            $this->fields[$name]->relation = $relation;
+            $this->fields[$name]->visibility = $visibility;
         }
+
+
+        $this->defaultSpanFields
+                = array_merge(array_keys($this->fields), array('_ref'));
+    }
+
+    /**
+     * @param RecordFactoryInterface $factory
+     */
+    public function setRecordFactory(RecordFactoryInterface $factory)
+    {
+        $this->recordFactory = $factory;
     }
 
     /**
@@ -122,7 +119,7 @@ abstract class MongoRecord extends AbstractRecord
     {
         if ($this->isOne($name)) {
             $this->data[$name]
-                = $this->filterValue($value, $this->types[$name]);
+                    = $this->filterValue($value, $this->getType($name));
         }
     }
 
@@ -151,7 +148,7 @@ abstract class MongoRecord extends AbstractRecord
             }
 
             array_push($this->data[$name],
-                       $this->filterValue($value, $this->types[$name]));
+                       $this->filterValue($value, $this->getType($name)));
         }
     }
 
@@ -170,13 +167,13 @@ abstract class MongoRecord extends AbstractRecord
     /**
      * @param mixed $data
      */
-    public function populate($data)
+    public function populate(array $data)
     {
         foreach ($data as $name => $value) {
             if (isset($this->fields[$name])) {
-                $type = $this->types[$name];
+                $type = $this->getType($name);
 
-                switch ($this->relations[$name]) {
+                switch ($this->getRelation($name)) {
                     case MongoRecord::RELATION_ONE: {
                         $this->populateOne($name, $value, $type);
                         break;
@@ -238,9 +235,9 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function getDbValue($name, $value)
     {
-        $type = $this->types[$name];
+        $type = $this->getType($name);
         if (MongoRecord::isMongoRecord($type)) {
-            switch ($this->relations[$name]) {
+            switch ($this->getRelation($name)) {
                 case MongoRecord::RELATION_ONE: {
                     return $value->spanDbSerialize($this->collection);
                 }
@@ -269,9 +266,7 @@ abstract class MongoRecord extends AbstractRecord
         $result = array();
 
         foreach ($this->data as $name => $value) {
-            if ($this->visibilities[$name]
-                    === MongoRecord::VISIBILITY_VISIBLE) {
-
+            if ($this->isVisibile($name)) {
                 $result[$name] = $this->getJsonValue($name, $value);
             }
         }
@@ -283,12 +278,20 @@ abstract class MongoRecord extends AbstractRecord
         return $result;
     }
 
+    /**
+     * @param array $fields
+     */
+    protected function extendFields(array $fields)
+    {
+        return $fields;
+    }
+
     private function getJsonValue($name, $value)
     {
-        $type = $this->types[$name];
+        $type = $this->getType($name);
 
         if (MongoRecord::isMongoRecord($type)) {
-            switch ($this->relations[$name]) {
+            switch ($this->getRelation($name)) {
                 case MongoRecord::RELATION_ONE: {
                     return $value->jsonSerialize();
                 }
@@ -326,10 +329,10 @@ abstract class MongoRecord extends AbstractRecord
      * @param mixed $value
      * @param string $type
      */
-    private function populateOne($name, $value, $type)
+    private function populateOne($name, array $value, $type)
     {
         if (MongoRecord::isMongoRecord($type)) {
-            $record = $this->createRecord($type);
+            $record = $this->createRecord($type, $value);
             $record->populate($value);
 
             $this->data[$name] = $record;
@@ -349,10 +352,7 @@ abstract class MongoRecord extends AbstractRecord
 
         if (MongoRecord::isMongoRecord($type)) {
             foreach ($values as $value) {
-                $record = $this->createRecord($type);
-                $record->populate($value);
-
-                array_push($array, $record);
+                array_push($array, $this->createRecord($type, $value));
             }
         } else {
             foreach ($values as $value) {
@@ -361,7 +361,6 @@ abstract class MongoRecord extends AbstractRecord
         }
 
         $this->data[$name] = $array;
-        $this->originalData = $array;
     }
 
     /**
@@ -384,12 +383,19 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
-     * @param string $type
+     * @param string $name
+     * @param array $value
      * @return \PhotoCake\Db\Mongo\MongoRecord
      */
-    private function createRecord($type)
+    private function createRecord($name, array $value)
     {
-        return new $type();
+        $record = $this->recordFactory->createByName($name, $value);
+
+        if ($record !== null) {
+            $record->populate($value);
+        }
+
+        return $record;
     }
 
     /**
@@ -399,7 +405,7 @@ abstract class MongoRecord extends AbstractRecord
     private function isMany($name)
     {
         return isset($this->fields[$name]) &&
-               $this->relations[$name] === MongoRecord::RELATION_MANY;
+                $this->getRelation($name) === MongoRecord::RELATION_MANY;
     }
 
     /**
@@ -409,7 +415,22 @@ abstract class MongoRecord extends AbstractRecord
     private function isOne($name)
     {
         return isset($this->fields[$name]) &&
-               $this->relations[$name] === MongoRecord::RELATION_ONE;
+               $this->getRelation($name) === MongoRecord::RELATION_ONE;
     }
 
+    private function getType($name)
+    {
+        return $this->fields[$name]->type;
+    }
+
+    private function getRelation($name)
+    {
+        return $this->fields[$name]->relation;
+    }
+
+    private function isVisibile($name)
+    {
+        return $this->fields[$name]->visibility ===
+                MongoRecord::VISIBILITY_VISIBLE;
+    }
 }

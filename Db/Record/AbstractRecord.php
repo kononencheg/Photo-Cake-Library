@@ -7,7 +7,7 @@ abstract class AbstractRecord implements RecordInterface
     /**
      * @var string
      */
-    protected $collection = null;
+    protected $collection = '';
 
     /**
      * @var array

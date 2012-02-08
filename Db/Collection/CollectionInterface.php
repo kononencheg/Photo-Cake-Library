@@ -48,7 +48,7 @@ interface CollectionInterface
      * @param mixed $sort
      * @param integer $offset
      * @param integer $limit
-     * @return Iterator
+     * @return \Iterator
      */
     function fetchAll
         ($condition = null, $sort = null, $offset = null, $limit = null);
@@ -80,5 +80,5 @@ interface CollectionInterface
      * @abstract
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    public function createRecord();
+    public function createRecord(array $data);
 }

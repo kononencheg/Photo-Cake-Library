@@ -23,8 +23,14 @@ abstract class AbstractCollection implements CollectionInterface
     /**
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    public function createRecord()
+    protected function createRecord(array $data)
     {
-        return $this->recordFactory->create($this->getName());
+        $record = $this->recordFactory->create($this->getName(), $data);
+
+        if ($record !== null) {
+            $record->populate($data);
+        }
+
+        return $record;
     }
 }

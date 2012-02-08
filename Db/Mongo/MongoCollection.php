@@ -62,10 +62,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
         ));
 
         if ($data !== null) {
-            $record = $this->createRecord();
-            $record->populate($data);
-
-            return $record;
+            return $this->createRecord($data);
         }
 
         return null;
@@ -78,18 +75,17 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      */
     public function fetchOne($condition = array(), $offset = null)
     {
-        $record = null;
         $cursor = $this->collection->find($condition)
                                     ->limit(1)
                                     ->skip($offset);
 
         $data = $cursor->getNext();
+
         if ($data !== null) {
-            $record = $this->createRecord();
-            $record->populate($data);
+            return $this->createRecord($data);
         }
 
-        return $record;
+        return null;
     }
 
     /**
