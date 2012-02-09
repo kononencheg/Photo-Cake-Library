@@ -18,4 +18,32 @@ abstract class AbstractRecord implements RecordInterface
      * @var array
      */
     protected $data = array();
+
+
+    /**
+     * @abstract
+     * @param string $name
+     * @param mixed $value
+     */
+    abstract protected function set($name, $value);
+
+    /**
+     * @abstract
+     * @param string $name
+     */
+    abstract protected function get($name);
+
+    /**
+     * @abstract
+     * @param string $name
+     * @param mixed $value
+     */
+    abstract protected function add($name, $value);
+
+    /**
+     * @abstract
+     * @param string $name
+     * @param mixed $value
+     */
+    abstract protected function remove($name, $value);
 }

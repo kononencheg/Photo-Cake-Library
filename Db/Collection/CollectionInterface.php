@@ -37,7 +37,7 @@ interface CollectionInterface
     /**
      * @abstract
      * @param mixed $condition
-     * @param integer $offset
+     * @param int $offset
      * @return \PhotoCake\Db\Record\RecordInterface
      */
     function fetchOne($condition = null, $offset = null);
@@ -46,8 +46,8 @@ interface CollectionInterface
      * @abstract
      * @param mixed $condition
      * @param mixed $sort
-     * @param integer $offset
-     * @param integer $limit
+     * @param int $offset
+     * @param int $limit
      * @return \Iterator
      */
     function fetchAll
@@ -62,23 +62,23 @@ interface CollectionInterface
 
     /**
      * @abstract
-     * @param mixed $condition
+     * @param array $condition
      * @return void
      */
     function removeAll($condition);
 
     /**
      * @abstract
-     * @param $condition
-     * @param $limit
-     * @param $offset
-     * @return integer
+     * @param array $condition
+     * @param int $limit
+     * @param int $offset
+     * @return int
      */
-    function count($condition, $limit, $offset);
+    function count($condition = null, $limit = null, $offset = null);
 
     /**
      * @abstract
      * @return \PhotoCake\Db\Record\RecordInterface
      */
-    public function createRecord(array $data);
+    function createRecord(array $data);
 }

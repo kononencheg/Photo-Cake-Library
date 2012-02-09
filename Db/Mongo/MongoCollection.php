@@ -119,7 +119,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     }
 
     /**
-     * @param mixed $condition
+     * @param array $condition
      * @return mixed
      */
     public function removeAll($condition)
@@ -128,14 +128,22 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     }
 
     /**
-     * @param null $condition
-     * @param null $limit
-     * @param null $offset
+     * @param array $condition
+     * @param int $limit
+     * @param int $offset
      * @return int
      */
     public function count($condition = null, $limit = null, $offset = null)
     {
         return $this->collection->count($condition, $limit, $offset);
+    }
+
+    /**
+     * @param MongoRecord $record
+     */
+    protected function prepareRecord(MongoRecord $record)
+    {
+        $record->setRecordFactory($this->recordFactory);
     }
 
     /**

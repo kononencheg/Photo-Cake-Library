@@ -108,23 +108,24 @@ abstract class Method
      * @param array $messages
      * @return void
      */
-    protected function applyFilter(array $messages = array(),
-                                   array $customFilters = array()) {
+    protected function applyFilter(array $customFilters = array()) {
 
-        foreach ($this->arguments as $name => $type) {
-            $value = $this->filter->check($this->getParam($name), $type);
+        foreach ($this->arguments as $name => $options) {
+            $messages = array();
+            if (isset($options[1])) {
+                $messages = $options[1];
+            }
+
+            $value = $this->filter->check($this->getParam($name), $options[0]);
 
             if (!is_object($value) && !is_array($value) &&
-                isset($messages[$name]) &&
-                isset($messages[$name][$value])) {
+                isset($messages[$value])) {
 
-                $this->response->addParamError($name, $messages[$name][$value]);
+                $this->response->addParamError($name, $messages[$value]);
             } else {
                 if (isset($customFilters[$name])) {
                     $this->{$customFilters[$name]}($value);
                 }
-
-                $this->params[$name] = $value;
             }
         }
     }

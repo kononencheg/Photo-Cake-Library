@@ -6,7 +6,7 @@ class Filter
 {
     const STRING = 'string';
     const BOOLEAN = 'boolean';
-    const INTEGER = 'integer';
+    const INTEGER = 'int';
     const FLOAT = 'float';
     const OBJECT = 'object';
 

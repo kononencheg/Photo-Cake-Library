@@ -9,27 +9,27 @@ abstract class MongoRecord extends AbstractRecord
 {
     /**
      * @const
-     * @var int
+     * @var boolean
      */
-    const RELATION_MANY = 0;
+    const RELATION_MANY = true;
 
     /**
      * @const
-     * @var int
+     * @var boolean
      */
-    const RELATION_ONE = 1;
+    const RELATION_ONE = false;
 
     /**
      * @const
-     * @var int
+     * @var boolean
      */
-    const VISIBILITY_HIDDEN = 0;
+    const VISIBILITY_VISIBLE = true;
 
     /**
      * @const
-     * @var int
+     * @var boolean
      */
-    const VISIBILITY_VISIBLE = 1;
+    const VISIBILITY_HIDDEN = false;
 
     /**
      * @static
@@ -115,11 +115,10 @@ abstract class MongoRecord extends AbstractRecord
      * @param string $name
      * @param mixed $value
      */
-    public function set($name, $value)
+    protected function set($name, $value)
     {
-        if ($this->isOne($name)) {
-            $this->data[$name]
-                    = $this->filterValue($value, $this->getType($name));
+        if (!$this->isMany($name)) {
+            $this->data[$name] = $value;
         }
     }
 
@@ -127,7 +126,7 @@ abstract class MongoRecord extends AbstractRecord
      * @param string $name
      * @return mixed
      */
-    public function get($name)
+    protected function get($name)
     {
         if (isset($this->data[$name])) {
             return $this->data[$name];
@@ -140,15 +139,14 @@ abstract class MongoRecord extends AbstractRecord
      * @param string $name
      * @param mixed $value
      */
-    public function add($name, $value)
+    protected function add($name, $value)
     {
         if ($this->isMany($name)) {
             if (!isset($this->data[$name])) {
                 $this->data[$name] = array();
             }
 
-            array_push($this->data[$name],
-                       $this->filterValue($value, $this->getType($name)));
+            array_push($this->data[$name], $value);
         }
     }
 
@@ -156,16 +154,19 @@ abstract class MongoRecord extends AbstractRecord
      * @param string $name
      * @param mixed $value
      */
-    public function remove($name, $value)
+    protected function remove($name, $value)
     {
-        if ($this->isMany($name) && is_array($this->data[$name])) {
+        if ($this->isMany($name) && isset($this->data[$name])) {
             $key = array_search($value, $this->data[$name]);
-            array_splice($this->data[$name], $key, 1);
+
+            if ($key !== false) {
+                array_splice($this->data[$name], $key, 1);
+            }
         }
     }
 
     /**
-     * @param mixed $data
+     * @param array $data
      */
     public function populate(array $data)
     {
@@ -173,17 +174,12 @@ abstract class MongoRecord extends AbstractRecord
             if (isset($this->fields[$name])) {
                 $type = $this->getType($name);
 
-                switch ($this->getRelation($name)) {
-                    case MongoRecord::RELATION_ONE: {
-                        $this->populateOne($name, $value, $type);
-                        break;
-                    }
-
-                    case MongoRecord::RELATION_MANY: {
-                        $this->populateMany($name, $value, $type);
-                        break;
-                    }
+                if ($this->isMany($name)) {
+                    $this->populateMany($name, $value, $type);
+                } else {
+                    $this->populateOne($name, $value, $type);
                 }
+
             } elseif ($name === '_id' || $name === '_ref') {
                 $this->id = $value;
             }
@@ -237,21 +233,17 @@ abstract class MongoRecord extends AbstractRecord
     {
         $type = $this->getType($name);
         if (MongoRecord::isMongoRecord($type)) {
-            switch ($this->getRelation($name)) {
-                case MongoRecord::RELATION_ONE: {
-                    return $value->spanDbSerialize($this->collection);
+            if ($this->isMany($name)) {
+                $result = array();
+
+                foreach ($value as $record) {
+                    array_push
+                        ($result, $record->spanDbSerialize($this->collection));
                 }
 
-                case MongoRecord::RELATION_MANY: {
-                    $result = array();
-
-                    foreach ($value as $record) {
-                        array_push($result,
-                                   $record->spanDbSerialize($this->collection));
-                    }
-
-                    return $result;
-                }
+                return $result;
+            } else {
+                return $value->spanDbSerialize($this->collection);
             }
         }
 
@@ -291,20 +283,16 @@ abstract class MongoRecord extends AbstractRecord
         $type = $this->getType($name);
 
         if (MongoRecord::isMongoRecord($type)) {
-            switch ($this->getRelation($name)) {
-                case MongoRecord::RELATION_ONE: {
-                    return $value->jsonSerialize();
+            if ($this->isMany($name)) {
+                $result = array();
+
+                foreach ($value as $record) {
+                    array_push($result, $record->jsonSerialize());
                 }
 
-                case MongoRecord::RELATION_MANY: {
-                    $result = array();
-
-                    foreach ($value as $record) {
-                        array_push($result, $record->jsonSerialize());
-                    }
-
-                    return $result;
-                }
+                return $result;
+            } else {
+                return $value->jsonSerialize();
             }
         }
 
@@ -329,9 +317,10 @@ abstract class MongoRecord extends AbstractRecord
      * @param mixed $value
      * @param string $type
      */
-    private function populateOne($name, array $value, $type)
+    private function populateOne($name, $value, $type)
     {
         if (MongoRecord::isMongoRecord($type)) {
+            // TODO: Do not create every time!
             $record = $this->createRecord($type, $value);
             $record->populate($value);
 
@@ -398,39 +387,18 @@ abstract class MongoRecord extends AbstractRecord
         return $record;
     }
 
-    /**
-     * @param string $name
-     * @return bool
-     */
-    private function isMany($name)
-    {
-        return isset($this->fields[$name]) &&
-                $this->getRelation($name) === MongoRecord::RELATION_MANY;
-    }
-
-    /**
-     * @param string $name
-     * @return bool
-     */
-    private function isOne($name)
-    {
-        return isset($this->fields[$name]) &&
-               $this->getRelation($name) === MongoRecord::RELATION_ONE;
-    }
-
     private function getType($name)
     {
         return $this->fields[$name]->type;
     }
 
-    private function getRelation($name)
+    private function isMany($name)
     {
         return $this->fields[$name]->relation;
     }
 
     private function isVisibile($name)
     {
-        return $this->fields[$name]->visibility ===
-                MongoRecord::VISIBILITY_VISIBLE;
+        return $this->fields[$name]->visibility;
     }
 }
