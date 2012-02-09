@@ -39,6 +39,12 @@ abstract class Method
      */
     protected $response = null;
 
+    public function __construct()
+    {
+        $this->arguments
+                = array_merge($this->arguments, $this->extendArguments());
+    }
+
     /**
      * @param \PhotoCake\Http\Response\Response $response
      */
@@ -60,6 +66,11 @@ abstract class Method
     }
 
     /**
+     * @return void
+     */
+    protected function prepare() {}
+
+    /**
      * @abstract
      * @return mixed
      */
@@ -74,6 +85,7 @@ abstract class Method
 
             $this->params = $params;
 
+            $this->prepare();
             $this->filter();
 
             if (!$this->response->hasErrors()) {
@@ -128,6 +140,11 @@ abstract class Method
                 }
             }
         }
+    }
+
+    protected function extendArguments()
+    {
+        return array();
     }
 
 }

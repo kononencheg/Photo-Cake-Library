@@ -48,10 +48,8 @@ class MongoCollectionIterator implements \Iterator
         if (!isset($this->data[$this->key])) {
             $data = $this->cursor->current();
             if ($data !== null) {
-                $record = $this->collection->createRecord();
-                $record->populate($data);
-
-                $this->data[$this->key] = $record;
+                $this->data[$this->key]
+                        = $this->collection->createRecord($data);
             }
         }
 

@@ -28,16 +28,16 @@ class MongoConfiguration extends AbstractConfiguration
         $this->options = $options;
     }
 
-    public function getCollectionFactory()
+    /**
+     * @return MongoCollectionFactory
+     */
+    protected function createCollectionFactory()
     {
-        if ($this->collectionFactory === null) {
-            $mongo = new \Mongo($this->server, $this->options);
+        $mongo = new \Mongo($this->server, $this->options);
 
-            $this->collectionFactory
-                    = new MongoCollectionFactory($mongo->selectDB($this->db));
-            $this->collectionFactory->setRecordFactory($this->recordFactory);
-        }
+        $factory = new MongoCollectionFactory($mongo->selectDB($this->db));
+        $factory->setRecordFactory($this->recordFactory);
 
-        return $this->collectionFactory;
+        return $factory;
     }
 }

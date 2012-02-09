@@ -28,8 +28,6 @@ abstract class AbstractCollection implements CollectionInterface
         $record = $this->recordFactory
                        ->createForCollection($this->getName(), $data);
 
-        $this->prepareRecord($record);
-
         if ($record !== null) {
             $record->populate($data);
         }

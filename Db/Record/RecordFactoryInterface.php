@@ -20,4 +20,9 @@ interface RecordFactoryInterface
      */
     function createByName($name, array $value);
 
+    /**
+     * @param string $name
+     * @return boolean
+     */
+    function isRecordExist($name);
 }

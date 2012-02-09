@@ -29,7 +29,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     }
 
     /**
-     * @param \PhotoCake\Db\Record\RecordInterface $record
+     * @param MongoRecord $record
      */
     public function update(RecordInterface $record)
     {
@@ -138,13 +138,6 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
         return $this->collection->count($condition, $limit, $offset);
     }
 
-    /**
-     * @param MongoRecord $record
-     */
-    protected function prepareRecord(MongoRecord $record)
-    {
-        $record->setRecordFactory($this->recordFactory);
-    }
 
     /**
      * @param mixed $id

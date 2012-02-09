@@ -66,7 +66,7 @@ abstract class MongoRecord extends AbstractRecord
      */
     public function __construct()
     {
-        $this->fields = $this->extendFields($this->fields);
+        $this->fields = array_merge($this->fields, $this->extendFields());
         foreach ($this->fields as $name => $field) {
             $type = $field;
             $relation = MongoRecord::RELATION_ONE;
@@ -231,8 +231,7 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function getDbValue($name, $value)
     {
-        $type = $this->getType($name);
-        if (MongoRecord::isMongoRecord($type)) {
+        if (MongoRecord::isMongoRecord($value)) {
             if ($this->isMany($name)) {
                 $result = array();
 
@@ -273,16 +272,16 @@ abstract class MongoRecord extends AbstractRecord
     /**
      * @param array $fields
      */
-    protected function extendFields(array $fields)
+    protected function extendFields()
     {
-        return $fields;
+        return array();
     }
 
     private function getJsonValue($name, $value)
     {
         $type = $this->getType($name);
 
-        if (MongoRecord::isMongoRecord($type)) {
+        if ($this->isRecordExist($type)) {
             if ($this->isMany($name)) {
                 $result = array();
 
@@ -319,12 +318,9 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function populateOne($name, $value, $type)
     {
-        if (MongoRecord::isMongoRecord($type)) {
+        if ($this->isRecordExist($type)) {
             // TODO: Do not create every time!
-            $record = $this->createRecord($type, $value);
-            $record->populate($value);
-
-            $this->data[$name] = $record;
+            $this->data[$name] = $this->createRecord($type, $value);
         } else {
             $this->data[$name] = $this->filterValue($value, $type);
         }
@@ -339,7 +335,7 @@ abstract class MongoRecord extends AbstractRecord
     {
         $array = array();
 
-        if (MongoRecord::isMongoRecord($type)) {
+        if ($this->isRecordExist($type)) {
             foreach ($values as $value) {
                 array_push($array, $this->createRecord($type, $value));
             }
@@ -379,6 +375,7 @@ abstract class MongoRecord extends AbstractRecord
     private function createRecord($name, array $value)
     {
         $record = $this->recordFactory->createByName($name, $value);
+        $this->initRecord($record);
 
         if ($record !== null) {
             $record->populate($value);
@@ -387,16 +384,45 @@ abstract class MongoRecord extends AbstractRecord
         return $record;
     }
 
+    /**
+     * @param MongoRecord $record
+     */
+    private function initRecord(MongoRecord $record)
+    {
+        $record->setRecordFactory($this->recordFactory);
+    }
+
+    /**
+     * @param string $name
+     * @return boolean
+     */
+    private function isRecordExist($name)
+    {
+        return $this->recordFactory->isRecordExist($name);
+    }
+
+    /**
+     * @param string $name
+     * @return string
+     */
     private function getType($name)
     {
         return $this->fields[$name]->type;
     }
 
+    /**
+     * @param string $name
+     * @return boolean
+     */
     private function isMany($name)
     {
         return $this->fields[$name]->relation;
     }
 
+    /**
+     * @param string $name
+     * @return boolean
+     */
     private function isVisibile($name)
     {
         return $this->fields[$name]->visibility;

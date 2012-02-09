@@ -30,9 +30,29 @@ abstract class AbstractConfiguration
     }
 
     /**
+     * @return string
+     */
+    public function getRecordFactory()
+    {
+        return $this->recordFactory;
+    }
+
+    /**
      * @return \PhotoCake\Db\Collection\CollectionFactoryInterface
      */
-    abstract public function getCollectionFactory();
+    public function getCollectionFactory()
+    {
+        if ($this->collectionFactory === null) {
+            $this->collectionFactory = $this->createCollectionFactory();
+        }
+
+        return $this->collectionFactory;
+    }
+
+    /**
+     * @return \PhotoCake\Db\Collection\CollectionFactoryInterface
+     */
+    abstract protected function createCollectionFactory();
 
     /**
      * @param string $db
