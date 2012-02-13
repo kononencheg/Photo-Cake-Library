@@ -14,7 +14,7 @@ class Request
      */
     private function __construct()
     {
-        $this->source = array_merge($_GET, $_POST);
+        $this->source = array_merge($_GET, $_POST, $_FILES);
     }
 
     /**

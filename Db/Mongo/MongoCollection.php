@@ -124,7 +124,9 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      */
     public function removeAll($condition)
     {
-        return $this->collection->remove($condition);
+        return $this->collection->remove($condition, array(
+            'safe' => true
+        ));
     }
 
     /**

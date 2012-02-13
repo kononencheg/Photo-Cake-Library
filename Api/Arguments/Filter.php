@@ -4,6 +4,8 @@ namespace PhotoCake\Api\Arguments;
 
 class Filter
 {
+    const FILE = 'file';
+
     const STRING = 'string';
     const BOOLEAN = 'boolean';
     const INTEGER = 'int';
@@ -28,6 +30,8 @@ class Filter
     public function check($value, $type) {
         if ($value !== null) {
             switch ($type) {
+                case self::FILE: return $value;
+
                 case self::STRING:
                 case self::BOOLEAN:
                 case self::INTEGER:
