@@ -33,9 +33,22 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      */
     public function update(RecordInterface $record)
     {
-        $data = $record->dbSerialize();
-        $this->collection->save($data);
-        $record->populate($data);
+        $id = $record->getMongoId();
+
+        if ($id === null) {
+            $data = $record->insertSerialize();
+
+            $this->collection->insert($data, array( 'safe' => true ));
+
+            $record->setMongoId($data['_id']);
+        } else {
+            $data = $record->updateSerialize();
+
+            var_dump($data);
+
+            $this->collection->update
+                (array('_id' => $id), $data, array( 'safe' => true ));
+        }
     }
 
     /**
@@ -58,7 +71,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     public function fetch($id)
     {
         $data = $this->collection->findOne(array(
-            '_id' => $this->mongoID($id)
+            '_id' => new \MongoId($id)
         ));
 
         if ($data !== null) {
@@ -108,13 +121,13 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     }
 
     /**
-     * @param \PhotoCake\Db\Record\RecordInterface $record
+     * @param MongoRecord $record
      * @return mixed
      */
     public function remove(RecordInterface $record)
     {
         return $this->collection->remove(array(
-            '_id' => $this->mongoID($record->getID())
+            '_id' => $record->getMongoID()
         ));
     }
 
@@ -138,15 +151,5 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
     public function count($condition = null, $limit = null, $offset = null)
     {
         return $this->collection->count($condition, $limit, $offset);
-    }
-
-
-    /**
-     * @param mixed $id
-     * @return \MongoId
-     */
-    private function mongoID($id)
-    {
-        return new \MongoId($id);
     }
 }

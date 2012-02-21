@@ -20,9 +20,19 @@ interface RecordInterface
      * Specify data which should be stored in data base.
      *
      * @abstract
+     * @param string|null $collection
      * @return array
      */
-    public function dbSerialize();
+    public function insertSerialize($collection = null);
+
+    /**
+     * Specify data which should be stored in data base.
+     *
+     * @abstract
+     * @param string $collection
+     * @return array
+     */
+    public function updateSerialize($collection = null);
 
     /**
      * Specify data which should be encoded to JSON.

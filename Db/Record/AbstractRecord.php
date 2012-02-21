@@ -17,8 +17,12 @@ abstract class AbstractRecord implements RecordInterface
     /**
      * @var array
      */
-    protected $data = array();
+    protected $options = array();
 
+    /**
+     * @var array
+     */
+    protected $data = array();
 
     /**
      * @abstract

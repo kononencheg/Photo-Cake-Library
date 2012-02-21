@@ -30,7 +30,7 @@ abstract class AbstractConfiguration
     }
 
     /**
-     * @return string
+     * @return RecordFactoryInterface
      */
     public function getRecordFactory()
     {

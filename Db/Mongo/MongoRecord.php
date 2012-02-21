@@ -54,6 +54,11 @@ abstract class MongoRecord extends AbstractRecord
     /**
      * @var array
      */
+    private $changedFields = array();
+
+    /**
+     * @var array
+     */
     private $defaultSpanFields = null;
 
     /**
@@ -66,33 +71,47 @@ abstract class MongoRecord extends AbstractRecord
      */
     public function __construct()
     {
-        $this->fields = array_merge($this->fields, $this->extendFields());
-        foreach ($this->fields as $name => $field) {
-            $type = $field;
+        $this->options = array_merge($this->options, $this->extendOptions());
+
+        foreach ($this->options as $name => $option) {
+            $type = $option;
+            $keyField = null;
             $relation = MongoRecord::RELATION_ONE;
             $visibility = MongoRecord::VISIBILITY_VISIBLE;
 
-            if (is_array($field)) {
-                $type = $field['type'];
+            if (is_array($option)) {
+                $type = $option['type'];
 
-                if (isset($field['relation'])) {
-                    $relation = $field['relation'];
+                if (isset($option['key_field'])) {
+                    $keyField = $option['key_field'];
                 }
 
-                if (isset($field['visibility'])) {
-                    $visibility = $field['visibility'];
+                if (isset($option['relation'])) {
+                    $relation = $option['relation'];
+                }
+
+                if (isset($option['visibility'])) {
+                    $visibility = $option['visibility'];
                 }
             }
 
-            $this->fields[$name] = new \stdClass();
-            $this->fields[$name]->type = $type;
-            $this->fields[$name]->relation = $relation;
-            $this->fields[$name]->visibility = $visibility;
+            $this->options[$name] = array();
+            $this->options[$name]['type'] = $type;
+            $this->options[$name]['relation'] = $relation;
+            $this->options[$name]['key_field'] = $keyField;
+            $this->options[$name]['visibility'] = $visibility;
         }
 
+        $this->fields = array_keys($this->options);
+        $this->defaultSpanFields  = array_merge($this->fields, array('_ref'));
+    }
 
-        $this->defaultSpanFields
-                = array_merge(array_keys($this->fields), array('_ref'));
+    /**
+     * @return array
+     */
+    protected function extendOptions()
+    {
+        return array();
     }
 
     /**
@@ -108,7 +127,25 @@ abstract class MongoRecord extends AbstractRecord
      */
     public function getId()
     {
-        return $this->id->{'$id'};
+        if ($this->id !== null) {
+            return $this->id->{'$id'};
+        }
+
+        return null;
+    }
+
+    /**
+     * @param \MongoId $id
+     */
+    public function setMongoId(\MongoId $id) {
+        $this->id = $id;
+    }
+
+    /**
+     * @return \MongoId
+     */
+    public function getMongoId() {
+        return $this->id;
     }
 
     /**
@@ -117,8 +154,14 @@ abstract class MongoRecord extends AbstractRecord
      */
     protected function set($name, $value)
     {
-        if (!$this->isMany($name)) {
-            $this->data[$name] = $value;
+        if (!isset($this->data[$name]) || $this->data[$name] !== $value) {
+            $type = $this->getType($name);
+
+            $this->data[$name] = $this->filterValue($type, $value);
+
+            if (!$this->isRecord($type)) {
+                $this->changedFields[$name] = true;
+            }
         }
     }
 
@@ -146,7 +189,20 @@ abstract class MongoRecord extends AbstractRecord
                 $this->data[$name] = array();
             }
 
-            array_push($this->data[$name], $value);
+            $type = $this->getType($name);
+            $value = $this->filterValue($type, $value);
+
+            if ($this->isRecord($type)) {
+                $keyField = $this->getKeyField($name);
+                $key = $value->get($keyField);
+
+                if ($key !== null) {
+                    $this->data[$name][$key] = $value;
+                }
+            } else {
+                array_push($this->data[$name], $value);
+                $this->changedFields[$name] = true;
+            }
         }
     }
 
@@ -158,9 +214,13 @@ abstract class MongoRecord extends AbstractRecord
     {
         if ($this->isMany($name) && isset($this->data[$name])) {
             $key = array_search($value, $this->data[$name]);
-
             if ($key !== false) {
-                array_splice($this->data[$name], $key, 1);
+                $this->data[$name][$key] = null;
+
+                $type = $this->getType($name);
+                if (!$this->isRecord($type)) {
+                    $this->changedFields[$name] = true;
+                }
             }
         }
     }
@@ -171,13 +231,19 @@ abstract class MongoRecord extends AbstractRecord
     public function populate(array $data)
     {
         foreach ($data as $name => $value) {
-            if (isset($this->fields[$name])) {
+            if (isset($this->options[$name])) {
                 $type = $this->getType($name);
 
                 if ($this->isMany($name)) {
-                    $this->populateMany($name, $value, $type);
+                    $data = array();
+
+                    foreach ($value as $key => $val) {
+                        $data[$key] = $this->populateValue($type, $val);
+                    }
+
+                    $this->data[$name] = $data;
                 } else {
-                    $this->populateOne($name, $value, $type);
+                    $this->data[$name] = $this->populateValue($type, $value);
                 }
 
             } elseif ($name === '_id' || $name === '_ref') {
@@ -187,66 +253,125 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
+     * @param string|null $collection
      * @return array
      */
-    public function dbSerialize()
+    public function insertSerialize($collection = null)
     {
         $result = array();
 
-        foreach ($this->data as $name => $value) {
-            $result[$name] = $this->getDbValue($name, $value);
+        $fields = $this->fields;
+        if ($collection !== null) {
+            $fields = $this->getSpanFields($collection);
         }
 
-        if ($this->id !== null) {
-            $result['_id'] = $this->id;
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param string $parent
-     * @return array
-     */
-    protected function spanDbSerialize($parent)
-    {
-        $result = array();
-
-        $fields = $this->getSpanFields($parent);
         foreach ($fields as $name) {
             if (isset($this->data[$name])) {
-                $result[$name] = $this->getDbValue($name, $this->data[$name]);
+                $type = $this->getType($name);
+                $value = $this->data[$name];
+
+                if ($this->isRecord($type)) {
+                    if ($this->isMany($name)) {
+                        $keyField = $this->getKeyField($name);
+                        $result[$name] = array();
+
+                        foreach ($value as $key => $record) {
+                            $result[$name][$key] =
+                                    $record->insertSerialize($this->collection);
+
+
+                            unset($result[$name][$key][$keyField]);
+                        }
+                    } else {
+                        $result[$name] =
+                                $value->insertSerialize($this->collection);
+                    }
+                } else {
+                    $result[$name] = $value;
+                }
             } elseif ($name === '_ref' && $this->id !== null) {
                 $result['_ref'] = $this->id;
             }
         }
 
+        $this->changedFields = array();
+
         return $result;
     }
 
     /**
-     * @param string $name
-     * @param mixed $value
-     * @return mixed
+     * @param string $collection
+     * @return array
      */
-    private function getDbValue($name, $value)
+    public function updateSerialize($collection = null)
     {
-        if (MongoRecord::isMongoRecord($value)) {
-            if ($this->isMany($name)) {
-                $result = array();
+        $result = array( '$set' => array(), '$unset' => array() );
 
-                foreach ($value as $record) {
-                    array_push
-                        ($result, $record->spanDbSerialize($this->collection));
+        $fields = $this->fields;
+        if ($collection !== null) {
+            $fields = $this->getSpanFields($collection);
+        }
+
+        foreach ($fields as $name) {
+            if (isset($this->data[$name])) {
+                $type = $this->getType($name);
+                $value = $this->data[$name];
+
+                if ($this->isRecord($type)) {
+                    if ($this->isMany($name)) {
+                        $keyField = $this->getKeyField($name);
+
+                        foreach ($value as $key => $record) {
+                            $prefix = $name . '.' . $key;
+
+                            if ($record !== null) {
+                                $this->serializeRecord($result, $prefix, $record);
+
+                                unset($result['$set'][$prefix . '.' . $keyField]);
+                            } else {
+                                $result['$unset'][$prefix] = 1;
+                            }
+                        }
+
+                    } else {
+                        $this->serializeRecord($result, $name, $value);
+                    }
+
+                } elseif (isset($this->changedFields[$name])) {
+                    $result['$set'][$name] = $value;
                 }
 
-                return $result;
-            } else {
-                return $value->spanDbSerialize($this->collection);
             }
         }
 
-        return $value;
+        $this->changedFields = array();
+
+        if (empty($result['$set'])) {
+            unset($result['$set']);
+        }
+
+        if (empty($result['$unset'])) {
+            unset($result['$unset']);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array $result
+     * @param string $prefix
+     * @param MongoRecord $record
+     * @return array
+     */
+    private function serializeRecord(&$result, $prefix, MongoRecord $record)
+    {
+        $data = $record->updateSerialize($this->collection);
+
+        foreach ($data as $name => $array) {
+            foreach ($array as $key => $value) {
+                $result[$name][$prefix . '.' . $key] = $value;
+            }
+        }
     }
 
     /**
@@ -267,14 +392,6 @@ abstract class MongoRecord extends AbstractRecord
         }
 
         return $result;
-    }
-
-    /**
-     * @param array $fields
-     */
-    protected function extendFields()
-    {
-        return array();
     }
 
     private function getJsonValue($name, $value)
@@ -312,51 +429,29 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
-     * @param string $name
+     * @param string $type
      * @param mixed $value
-     * @param string $type
-     */
-    private function populateOne($name, $value, $type)
-    {
-        if ($this->isRecordExist($type)) {
-            // TODO: Do not create every time!
-            $this->data[$name] = $this->createRecord($type, $value);
-        } else {
-            $this->data[$name] = $this->filterValue($value, $type);
-        }
-    }
-
-    /**
-     * @param string $name
-     * @param array $values
-     * @param string $type
-     */
-    private function populateMany($name, array $values, $type)
-    {
-        $array = array();
-
-        if ($this->isRecordExist($type)) {
-            foreach ($values as $value) {
-                array_push($array, $this->createRecord($type, $value));
-            }
-        } else {
-            foreach ($values as $value) {
-                array_push($array, $this->filterValue($value, $type));
-            }
-        }
-
-        $this->data[$name] = $array;
-    }
-
-    /**
-     * @param mixed $value
-     * @param string $type
      * @return mixed
      */
-    private function filterValue($value, $type)
+    private function populateValue($type, $value)
     {
-        if (class_exists($type, true)) {
-            if($value instanceof $type) {
+        if ($this->isRecord($type)) {
+            return $this->createRecord($type, $value);
+        }
+
+        settype($value, $type);
+        return $value;
+    }
+
+    /**
+     * @param string $type
+     * @param mixed $value
+     * @return mixed
+     */
+    private function filterValue($type, $value)
+    {
+        if ($this->isRecord($type)) {
+            if (MongoRecord::isMongoRecord($value)) {
                 return $value;
             }
         } else {
@@ -396,9 +491,28 @@ abstract class MongoRecord extends AbstractRecord
      * @param string $name
      * @return boolean
      */
-    private function isRecordExist($name)
+    private function isRecord($name)
     {
         return $this->recordFactory->isRecordExist($name);
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $record
+     * @return string|null
+     */
+    private function getKey($name, $value)
+    {
+        $key = null;
+
+        if (MongoRecord::isMongoRecord($value)) {
+
+        } else {
+            $key = count($this->data[$name]);
+        }
+
+
+        return $key;
     }
 
     /**
@@ -407,7 +521,16 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function getType($name)
     {
-        return $this->fields[$name]->type;
+        return $this->options[$name]['type'];
+    }
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    private function getKeyField($name)
+    {
+        return $this->options[$name]['key_field'];
     }
 
     /**
@@ -416,7 +539,7 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function isMany($name)
     {
-        return $this->fields[$name]->relation;
+        return $this->options[$name]['relation'];
     }
 
     /**
@@ -425,6 +548,6 @@ abstract class MongoRecord extends AbstractRecord
      */
     private function isVisibile($name)
     {
-        return $this->fields[$name]->visibility;
+        return $this->options[$name]['visibility'];
     }
 }
