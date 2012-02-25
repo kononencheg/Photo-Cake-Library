@@ -192,11 +192,13 @@ abstract class MongoRecord extends AbstractRecord
             $type = $this->getType($name);
             $value = $this->filterValue($type, $value);
 
+
             if ($this->isRecord($type)) {
                 $keyField = $this->getKeyField($name);
                 $key = $value->get($keyField);
 
                 if ($key !== null) {
+                    $key = str_replace('.', '_', $key);
                     $this->data[$name][$key] = $value;
                 }
             } else {
@@ -253,6 +255,23 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
+     * @param string $name
+     * @param array $value
+     * @return \PhotoCake\Db\Mongo\MongoRecord
+     */
+    private function createRecord($name, array $value)
+    {
+        $record = $this->recordFactory->createByName($name, $value);
+        $this->initRecord($record);
+
+        if ($record !== null) {
+            $record->populate($value);
+        }
+
+        return $record;
+    }
+
+    /**
      * @param string|null $collection
      * @return array
      */
@@ -272,15 +291,11 @@ abstract class MongoRecord extends AbstractRecord
 
                 if ($this->isRecord($type)) {
                     if ($this->isMany($name)) {
-                        $keyField = $this->getKeyField($name);
                         $result[$name] = array();
 
                         foreach ($value as $key => $record) {
                             $result[$name][$key] =
                                     $record->insertSerialize($this->collection);
-
-
-                            unset($result[$name][$key][$keyField]);
                         }
                     } else {
                         $result[$name] =
@@ -326,8 +341,6 @@ abstract class MongoRecord extends AbstractRecord
 
                             if ($record !== null) {
                                 $this->serializeRecord($result, $prefix, $record);
-
-                                unset($result['$set'][$prefix . '.' . $keyField]);
                             } else {
                                 $result['$unset'][$prefix] = 1;
                             }
@@ -398,12 +411,12 @@ abstract class MongoRecord extends AbstractRecord
     {
         $type = $this->getType($name);
 
-        if ($this->isRecordExist($type)) {
+        if ($this->isRecord($type)) {
             if ($this->isMany($name)) {
                 $result = array();
 
-                foreach ($value as $record) {
-                    array_push($result, $record->jsonSerialize());
+                foreach ($value as $key => $record) {
+                    $result[$key] = $record->jsonSerialize();
                 }
 
                 return $result;
@@ -460,23 +473,6 @@ abstract class MongoRecord extends AbstractRecord
         }
 
         return null;
-    }
-
-    /**
-     * @param string $name
-     * @param array $value
-     * @return \PhotoCake\Db\Mongo\MongoRecord
-     */
-    private function createRecord($name, array $value)
-    {
-        $record = $this->recordFactory->createByName($name, $value);
-        $this->initRecord($record);
-
-        if ($record !== null) {
-            $record->populate($value);
-        }
-
-        return $record;
     }
 
     /**
