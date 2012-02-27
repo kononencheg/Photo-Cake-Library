@@ -51,7 +51,7 @@ interface CollectionInterface
      * @return \Iterator
      */
     function fetchAll
-        ($condition = null, $sort = null, $offset = null, $limit = null);
+        ($condition = null, $limit = null, $offset = null, $sort = array());
 
     /**
      * @abstract

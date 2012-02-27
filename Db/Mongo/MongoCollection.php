@@ -107,7 +107,7 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
      * @return \Iterator
      */
     public function fetchAll($condition = array(),
-                             $sort = array(), $offset = null, $limit = null)
+                             $limit = null, $offset = null, $sort = array())
     {
         
         $cursor = $this->collection->find($condition)
