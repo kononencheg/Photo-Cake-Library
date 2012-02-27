@@ -34,12 +34,4 @@ abstract class AbstractCollection implements CollectionInterface
 
         return $record;
     }
-
-    /**
-     * @param \PhotoCake\Db\Record\RecordInterface $record
-     */
-    protected function prepareRecord($record)
-    {
-
-    }
 }

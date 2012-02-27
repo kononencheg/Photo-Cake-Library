@@ -180,6 +180,22 @@ abstract class MongoRecord extends AbstractRecord
 
     /**
      * @param string $name
+     * @param string $key
+     * @return mixed
+     */
+    protected function getByKey($name, $key) {
+        if ($this->isMany($name) &&
+            isset($this->data[$name]) &&
+            isset($this->data[$name][$key])) {
+
+            return $this->data[$name][$key];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $name
      * @param mixed $value
      */
     protected function add($name, $value)
@@ -334,13 +350,12 @@ abstract class MongoRecord extends AbstractRecord
 
                 if ($this->isRecord($type)) {
                     if ($this->isMany($name)) {
-                        $keyField = $this->getKeyField($name);
-
                         foreach ($value as $key => $record) {
                             $prefix = $name . '.' . $key;
 
                             if ($record !== null) {
-                                $this->serializeRecord($result, $prefix, $record);
+                                $this->serializeRecord
+                                            ($result, $prefix, $record);
                             } else {
                                 $result['$unset'][$prefix] = 1;
                             }

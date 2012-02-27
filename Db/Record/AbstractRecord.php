@@ -40,6 +40,14 @@ abstract class AbstractRecord implements RecordInterface
     /**
      * @abstract
      * @param string $name
+     * @param string $key
+     * @return mixed
+     */
+    abstract protected function getByKey($name, $key);
+
+    /**
+     * @abstract
+     * @param string $name
      * @param mixed $value
      */
     abstract protected function add($name, $value);

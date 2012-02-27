@@ -138,6 +138,8 @@ abstract class Method
                 if (isset($customFilters[$name])) {
                     $this->{$customFilters[$name]}($value);
                 }
+
+                $this->setParam($name, $value);
             }
         }
     }
