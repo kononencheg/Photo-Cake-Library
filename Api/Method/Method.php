@@ -135,11 +135,11 @@ abstract class Method
 
                 $this->response->addParamError($name, $messages[$value]);
             } else {
+                $this->setParam($name, $value);
+
                 if (isset($customFilters[$name])) {
                     $this->{$customFilters[$name]}($value);
                 }
-
-                $this->setParam($name, $value);
             }
         }
     }
