@@ -7,7 +7,7 @@ class FrameCallbackFormat implements FormatInterface
     /**
      * @var string
      */
-    private $callback;
+    private $callback = null;
 
     /**
      * @param string $callbackName
@@ -43,8 +43,13 @@ class FrameCallbackFormat implements FormatInterface
     }
 
     private function printCallbackScript($argument) {
-        echo '<script> parent.' . $this->callback .
-                '(' . json_encode($argument) . '); </script>';
+        if ( $this->callback !== null) {
+            echo '<script> ' .
+                    'if (parent.' . $this->callback . ' !== undefined) { '.
+                       ' parent.' . $this->callback . '(' . json_encode($argument) . ');'.
+                    '} ' .
+                 '</script>';
+        }
     }
 
 

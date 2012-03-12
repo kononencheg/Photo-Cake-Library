@@ -28,7 +28,7 @@ class Filter
      * @return bool|mixed|null|string
      */
     public function check($value, $type) {
-        if ($value !== null) {
+        if ($value !== null && $value !== '') {
             switch ($type) {
                 case self::FILE: return $value;
 

@@ -44,8 +44,10 @@ class MongoCollection extends \PhotoCake\Db\Collection\AbstractCollection
         } else {
             $data = $record->updateSerialize();
 
-            $this->collection->update
-                (array('_id' => $id), $data, array( 'safe' => true ));
+            if(!empty($data)) {
+                $this->collection->update
+                    (array('_id' => $id), $data, array( 'safe' => true ));
+            }
         }
     }
 
