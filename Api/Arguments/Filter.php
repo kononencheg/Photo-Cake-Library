@@ -10,7 +10,7 @@ class Filter
     const BOOLEAN = 'boolean';
     const INTEGER = 'int';
     const FLOAT = 'float';
-    const OBJECT = 'object';
+    const ARR = 'array';
 
     const EMAIL = 'email';
     const URL = 'url';
@@ -36,7 +36,7 @@ class Filter
                 case self::BOOLEAN:
                 case self::INTEGER:
                 case self::FLOAT:
-                case self::OBJECT: {
+                case self::ARR: {
                     settype($value, $type);
                     return $value;
                 }

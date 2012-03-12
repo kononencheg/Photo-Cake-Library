@@ -208,10 +208,8 @@ abstract class MongoRecord extends AbstractRecord
             $type = $this->getType($name);
             $value = $this->filterValue($type, $value);
 
-
             if ($this->isRecord($type)) {
-                $keyField = $this->getKeyField($name);
-                $key = $value->get($keyField);
+                $key = $this->getKey($name, $value);
 
                 if ($key !== null) {
                     $key = str_replace('.', '_', $key);
@@ -507,24 +505,6 @@ abstract class MongoRecord extends AbstractRecord
         return $this->recordFactory->isRecordExist($name);
     }
 
-    /**
-     * @param string $name
-     * @param mixed $record
-     * @return string|null
-     */
-    private function getKey($name, $value)
-    {
-        $key = null;
-
-        if (MongoRecord::isMongoRecord($value)) {
-
-        } else {
-            $key = count($this->data[$name]);
-        }
-
-
-        return $key;
-    }
 
     /**
      * @param string $name
@@ -536,12 +516,18 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
-     * @param string $name
-     * @return string
+     * @param $name
+     * @param MongoRecord $value
+     * @return mixed|string
      */
-    private function getKeyField($name)
+    private function getKey($name, MongoRecord $value)
     {
-        return $this->options[$name]['key_field'];
+        $field = $this->options[$name]['key_field'];
+        if ($field === null || $field === 'id') {
+            return $value->getId();
+        }
+
+        return $value->get($field);
     }
 
     /**
