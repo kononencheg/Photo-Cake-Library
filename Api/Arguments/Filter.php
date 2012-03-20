@@ -28,12 +28,15 @@ class Filter
      * @return bool|mixed|null|string
      */
     public function check($value, $type) {
+        if ($type === Filter::BOOLEAN) {
+            return $value !== null;
+        }
+
         if ($value !== null && $value !== '') {
             switch ($type) {
                 case self::FILE: return $value;
 
                 case self::STRING:
-                case self::BOOLEAN:
                 case self::INTEGER:
                 case self::FLOAT:
                 case self::ARR: {
