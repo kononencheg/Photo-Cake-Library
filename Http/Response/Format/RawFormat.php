@@ -28,7 +28,7 @@ class RawFormat implements FormatInterface
      */
     function renderErrors(array $errors)
     {
-        echo var_dump($errors);
+        echo var_export($errors, true);
     }
 
     /**
