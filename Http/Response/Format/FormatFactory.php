@@ -11,6 +11,9 @@ class FormatFactory
     public function create($name = null, \PhotoCake\Http\Request $request)
     {
         switch ($name) {
+            case 'raw':
+                return new RawFormat();
+
             case 'frame-callback':
                 return new FrameCallbackFormat($request->fetch('__callback'));
 
