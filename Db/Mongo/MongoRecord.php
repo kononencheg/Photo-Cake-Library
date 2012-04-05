@@ -184,6 +184,10 @@ abstract class MongoRecord extends AbstractRecord
      * @return mixed
      */
     protected function getByKey($name, $key) {
+        if ($key !== null) {
+            $key = str_replace('.', '_', $key);
+        }
+
         if ($this->isMany($name) &&
             isset($this->data[$name]) &&
             isset($this->data[$name][$key])) {
