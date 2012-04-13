@@ -246,6 +246,14 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
+     * @param string $name
+     */
+    protected function removeAll($name)
+    {
+        $this->set($name, null);
+    }
+
+    /**
      * @param array $data
      */
     public function populate(array $data)
@@ -352,15 +360,20 @@ abstract class MongoRecord extends AbstractRecord
 
                 if ($this->isRecord($type)) {
                     if ($this->isMany($name)) {
-                        foreach ($value as $key => $record) {
-                            $prefix = $name . '.' . $key;
 
-                            if ($record !== null) {
-                                $this->serializeRecord
-                                            ($result, $prefix, $record);
-                            } else {
-                                $result['$unset'][$prefix] = 1;
+                        if ($value !== null) {
+                            foreach ($value as $key => $record) {
+                                $prefix = $name . '.' . $key;
+
+                                if ($record !== null) {
+                                    $this->serializeRecord
+                                    ($result, $prefix, $record);
+                                } else {
+                                    $result['$unset'][$prefix] = 1;
+                                }
                             }
+                        } else {
+                            $result['$unset'][$name] = 1;
                         }
 
                     } else {
@@ -432,8 +445,10 @@ abstract class MongoRecord extends AbstractRecord
             if ($this->isMany($name)) {
                 $result = array();
 
-                foreach ($value as $key => $record) {
-                    $result[$key] = $record->jsonSerialize();
+                if ($value !== null) {
+                    foreach ($value as $key => $record) {
+                        $result[$key] = $record->jsonSerialize();
+                    }
                 }
 
                 return $result;

@@ -49,6 +49,10 @@ class FrameCallbackFormat implements FormatInterface
                        ' parent.' . $this->callback . '(' . json_encode($argument) . ');'.
                     '} ' .
                  '</script>';
+        } else {
+            echo '<script> ' .
+                    'alert("Frame callback don\'t set!");' .
+                '</script>';
         }
     }
 
