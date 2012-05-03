@@ -254,6 +254,19 @@ abstract class MongoRecord extends AbstractRecord
     }
 
     /**
+     *
+     */
+    protected function increment($name)
+    {
+        if (!isset($this->data[$name])) {
+            $this->data[$name] = 0;
+        }
+
+        $this->data[$name]++;
+        $this->changedFields[$name] = true;
+    }
+
+    /**
      * @param array $data
      */
     public function populate(array $data)
@@ -335,7 +348,9 @@ abstract class MongoRecord extends AbstractRecord
             }
         }
 
-        $this->changedFields = array();
+        if ($collection === null) {
+            $this->changedFields = array();
+        }
 
         return $result;
     }
@@ -360,7 +375,6 @@ abstract class MongoRecord extends AbstractRecord
 
                 if ($this->isRecord($type)) {
                     if ($this->isMany($name)) {
-
                         if ($value !== null) {
                             foreach ($value as $key => $record) {
                                 $prefix = $name . '.' . $key;
